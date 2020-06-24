@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: Fesh2
+Version: 2.0rc1
+Summary: Geodetic VLBI schedule management and processing
+Home-page: https://github.com/jejl/fesh2
+Author: Jim Lovell
+Author-email: jejlovell@gmail.com
+License: GPL v3
+Description: # fesh2
+        Geodetic VLBI schedule management and processing
+        
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
