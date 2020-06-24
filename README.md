@@ -10,7 +10,7 @@ on schedule files are only done if the time since the last check exceeds a
 specified time. Checks can be forced on the command line.
 
 ## Installation
-```git install fesh2```
+```pip install fesh2```
 
 ## Configuration
 Fesh2 looks for a configuration file in `/usr2/control` called `fesh2.config`. This will need to be set up for your station before running it.
