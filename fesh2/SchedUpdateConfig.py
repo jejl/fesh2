@@ -40,6 +40,7 @@ class Config:
                           'vsialign': parse_vsi_align}
         )
         self.config._interpolation = ExtendedInterpolation()
+        self.logger = None
         self.stations = []
         self.servers = []
         self.sched_types = []

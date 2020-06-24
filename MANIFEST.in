@@ -1,1 +1,2 @@
-include fesh2/sched_update.config
+include fesh2/fesh2.config
+include CHANGES.txt

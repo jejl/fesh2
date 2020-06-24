@@ -23,13 +23,14 @@ from datetime import datetime, timedelta
 # TODO: Test with different Python versions back to v 3.5.3 and v 2.7
 # TODO: Test on old versions of Debian: Etch, Wheezy
 # TODO: Logging to MAS?
-# Test multiple sessions in get
 
 # Defaults
-config_filename = '/usr2/control/sched_update.config'
-log_filename = 'sched_update.log'
+# Name (including full path) to the configuration file
+config_filename = '/usr2/control/fesh2.config'
+# Name of the log file. Do not include the path as this should be in the config file
+log_filename = 'fesh2.log'
 
-def main(config):
+def main_task(config):
     """
     When triggered, this willcheck for master and schedule files and process them with Drudg.
 
@@ -41,7 +42,7 @@ def main(config):
     # --------------------------------------------------------------------------
     # update local copy of master schedule (optional)
 
-    # logger.info("Checking the Master File...")
+    # config.logger.info("Checking the Master File...")
     if config.config.getboolean('Station', 'GetMaster'):
         new = check_master(config, intensive=False)
     if config.config.getboolean('Station', 'GetMasterIntensive'):
@@ -126,12 +127,12 @@ def check_master(cnf, intensive=False):
     """
     new_sched = False
     if not intensive:
-        logger.info("Checking IVS 24h session Master File master{:02d}.txt".format(cnf.year - 2000))
+        cnf.logger.info("Checking IVS 24h session Master File master{:02d}.txt".format(cnf.year - 2000))
         local_file = '{}/master{:02d}.txt'.format(cnf.config['FS']['sched_dir'], cnf.year - 2000)
     else:
-        logger.info("Checking IVS Intensive session Master File master{:02d}-int.txt".format(cnf.year - 2000))
+        cnf.logger.info("Checking IVS Intensive session Master File master{:02d}-int.txt".format(cnf.year - 2000))
         local_file = '{}/master{:02d}-int.txt'.format(cnf.config['FS']['sched_dir'], cnf.year - 2000)
-    logger.debug('Local file is {}'.format(local_file))
+    cnf.logger.debug('Local file is {}'.format(local_file))
     now = time.time()
     if path.exists(local_file):
         stinfo = os.stat(local_file)
@@ -143,17 +144,17 @@ def check_master(cnf, intensive=False):
     if timed_out or not file_exists or cnf.force_master_update:
         # we've waited long enough or the file doesn't exist locally or a download has been forced
         if timed_out:
-            logger.info("It's been longer than the Master schedule check interval")
+            cnf.logger.info("It's been longer than the Master schedule check interval")
         if not file_exists:
-            logger.info("File doesn't exist locally")
+            cnf.logger.info("File doesn't exist locally")
         if cnf.force_sched_update:
-            logger.info("A download has been forced")
+            cnf.logger.info("A download has been forced")
         # for each server, try to retrieve the file
         master_server = SchedServer.MasterServer(cnf.config['FS']['sched_dir'])
         master_server.curl_setup(cnf.config['Curl']['netrc_file'], cnf.config['Curl']['cookie_file'])
         force = cnf.force_master_update
         for server_url in cnf.servers:
-            logger.info("Checking Master file(s) at {}".format(server_url))
+            cnf.logger.info("Checking Master file(s) at {}".format(server_url))
             (success, new_sched) = master_server.get_master(server_url, cnf.year, cnf.config['FS']['sched_dir'],
                                                             force, 0, intensive)
             if force and success and new_sched:
@@ -162,7 +163,7 @@ def check_master(cnf, intensive=False):
                 force = False
         master_server.curl_close()
     else:
-        logger.info("Less than {} h since the file was last checked. Skipping".format(cnf.master_check_interval))
+        cnf.logger.info("Less than {} h since the file was last checked. Skipping".format(cnf.master_check_interval))
     return new_sched
 
 def check_sched(ses, config):
@@ -193,7 +194,7 @@ def check_sched(ses, config):
         logging.debug("This session is in the future")
 
     # set up for Schedule File operations
-    logger.info("Getting schedule file for {} if it's available...".format(ses.code))
+    config.logger.info("Getting schedule file for {} if it's available...".format(ses.code))
     # For each schedule type, go through the servers and check for them if they haven't
     sched_server = SchedServer.SchedFileServer(config.config['FS']['sched_dir'])
     sched_server.curl_setup(config.config['Curl']['netrc_file'],
@@ -208,11 +209,11 @@ def check_sched(ses, config):
         # we don't have any local files, so check all types
         types = config.sched_types
     # now go through the valid different types
-    logger.debug("Checking file types {}".format(types))
+    config.logger.debug("Checking file types {}".format(types))
     for type in types:
         # name of the local file:
         local_file = "{}/{}.{}".format(config.config['FS']['sched_dir'], ses.code, type)
-        logger.debug('Local file is {}'.format(local_file))
+        config.logger.debug('Local file is {}'.format(local_file))
         now_s = time.time()
         # get the last file access time (if it exists)
         if path.exists(local_file):
@@ -226,13 +227,13 @@ def check_sched(ses, config):
         if timed_out or not file_exists or config.force_sched_update:
             # we've waited long enough or the file doesn't exist locally or a download has been forced
             if timed_out:
-                logger.info("It's been longer than the schedule check interval")
+                config.logger.info("It's been longer than the schedule check interval")
             if not file_exists:
-                logger.info("File doesn't exist locally")
+                config.logger.info("File doesn't exist locally")
             if config.force_sched_update:
-                logger.info("A download has been forced")
+                config.logger.info("A download has been forced")
             # for each server, try to retrieve the file
-            force = cnf.force_sched_update
+            force = config.force_sched_update
             for server_url in config.servers:
                 # get the schedule. Set check_delta_hours=0 to make sure we get the latest version
                 # regardless of server
@@ -254,7 +255,7 @@ def check_sched(ses, config):
                     new = True
         else:
             if not timed_out:
-                logger.info("It's less than {} h since the last schedule check. Not checking.".format(config.sched_check_interval))
+                config.logger.info("It's less than {} h since the last schedule check. Not checking.".format(config.sched_check_interval))
         if got_sched_file:
             # Got the file, don't keep looking down the prioritised list of types
             sched_type = type
@@ -565,7 +566,7 @@ def start_thread_main(event, config):
 
 def start_thread_timing_loop(event_1, event_2, thread, config):
     """
-    This thread manages the main wait loop. It waits a specified time (the shortest out of the master and schedule file
+    This thread manages the main_task wait loop. It waits a specified time (the shortest out of the master and schedule file
     check wait times) then triggers a check.
 
     :param event_1: When this event is set, a schedule check loop is done or underway
@@ -593,11 +594,11 @@ def wait_for_event(event, config):
     :param config: configuration parameters (from the config file)
     :type config: Config class
     """
-    logger.debug('WFE: wait for event')
+    config.logger.debug('WFE: wait for event')
     event_is_set = event.wait()
-    logger.debug('WFE event set: {}'.format(event_is_set))
-    main(config)
-    logger.debug('WFE: clearing event1...')
+    config.logger.debug('WFE event set: {}'.format(event_is_set))
+    main_task(config)
+    config.logger.debug('WFE: clearing event1...')
     event.clear()
 
 def set_event_loop(event_1, event_2, thread, config):
@@ -656,10 +657,10 @@ def set_event_loop(event_1, event_2, thread, config):
             thread = start_thread_main(event_1, config)
             logging.debug("set_event_loop: thread started")
 
-if __name__ == '__main__':
+def main():
     """
     Reads command line arguments and the config file, starts logging, does an initial schedule
-    check and then starts the two threads that manage the main loop to periodically check for 
+    check and then starts the two threads that manage the main_task loop to periodically check for
     schedule files and process them with Drudg 
     """
     # --------------------------------------------------------------------------
@@ -687,15 +688,15 @@ if __name__ == '__main__':
                         datefmt='%Y-%m-%d %H:%M:%S')
 
     logging.Formatter.converter = time.gmtime
-    logger = logging.getLogger()
+    cnf.logger = logging.getLogger()
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     #ch.setLevel(logging.DEBUG)
     ch.setFormatter(logging.Formatter(format_txt_short))
-    logger.addHandler(ch)
+    cnf.logger.addHandler(ch)
     print("Writing to log file {}.".format(log_file_str))
     # run an initial update
-    main(cnf)
+    main_task(cnf)
 
     # Finish here if we are running in a one-pass only mode
     if not cnf.run_once:

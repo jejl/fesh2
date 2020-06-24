@@ -118,7 +118,7 @@ class Drudg:
             i = child.expect(prompts, timeout=self.timeout_s)
             # and deal with the output...
             if i==0:
-                # back to the main drudg prompt
+                # back to the main_task drudg prompt
                 done = True
             elif i==1:
                 # Being asked if we want to purge existing output file. Say 'yes'
