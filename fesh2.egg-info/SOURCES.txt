@@ -2,12 +2,6 @@ CHANGES.txt
 MANIFEST.in
 README.md
 setup.py
-Fesh2.egg-info/PKG-INFO
-Fesh2.egg-info/SOURCES.txt
-Fesh2.egg-info/dependency_links.txt
-Fesh2.egg-info/entry_points.txt
-Fesh2.egg-info/requires.txt
-Fesh2.egg-info/top_level.txt
 fesh2/Drudgery.py
 fesh2/MasterSession.py
 fesh2/SchedServer.py
@@ -18,5 +12,6 @@ fesh2/fesh2.config
 fesh2.egg-info/PKG-INFO
 fesh2.egg-info/SOURCES.txt
 fesh2.egg-info/dependency_links.txt
+fesh2.egg-info/entry_points.txt
 fesh2.egg-info/requires.txt
 fesh2.egg-info/top_level.txt

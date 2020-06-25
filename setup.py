@@ -59,7 +59,7 @@ def _post_install():
     print("Placing a copy of the template config file {} in {}".format(config_file_name, template_control_file_dir))
     copy2(template_config_file, target_template_config_file)
 
-    print("\n#############")
+    print("\n#############\n")
     copy_cfg_to_control = False
     if not path.exists(target_station_config_file):
         print("Placing a copy of the template configration file {} in {}.".format(config_file_name,
@@ -71,20 +71,15 @@ def _post_install():
         print("Compare it with the template in {} and make any changes if necessary.".format(template_control_file_dir))
     if copy_cfg_to_control:
         copy2(template_config_file, target_station_config_file)
-    msg = "Press [return] to continue "
-    if sys.version_info.major == 2:
-        raw_input(msg)
-    else:
-        input(msg)
+    print("\n#############\n\n")
 
 if not skip_pre_and_post:
     _pre_install()
 
 setup(
-    name='Fesh2',
-    version='2.0rc1',
-    # packages=['__main__.py'],
-    url='https://github.com/jejl/fesh2',
+    name='fesh2',
+    version='2.0rc4',
+    url='https://github.com/nvi-inc/fs',
     license='GPL v3',
     author='Jim Lovell',
     author_email='jejlovell@gmail.com',
