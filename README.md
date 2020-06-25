@@ -2,7 +2,8 @@
 
 ## What is it?
 **Fesh2** is a Python package that provides automated schedule file
- preparation. It requires an installation of the [NASA Field System](https://github.com/nvi-inc/fs). 
+ preparation. It requires an installation of the 
+ [NASA Field System](https://github.com/nvi-inc/fs). 
 
 **Fesh2** runs in a
 terminal window and regularly checks IVS schedule repositories for new or updated 
@@ -24,14 +25,31 @@ single check and not go into a wait state.
     * 3.8.2
 
 ## Installation
-Installation should probably be carried out from the superuser account
+**Fesh2** will eventually be distributed as part of the 
+[Field System](https://github.com/nvi-inc/fs), but for
+ now there are a couple of ways to obtain it. Installation should probably be
+  carried out under the superuser account
 
+### Option 1: pip
 ```
-cd /usr2/fs/fesh2/fesh2
-python setup.py install
+pip install fesh2
 ```
+
+### Option 2: Manual installation
+
+There are two wa
+
+ 1. Download and unpack the distribution 
+ [from github](https://github.com/jejl/fesh2) or 
+ [from PyPI](https://pypi.org/project/fesh2/) and put it into
+  `/usr2/fs/`, renaming the top directory `fesh2`
+ 2. Run the following:
+    ```
+    cd /usr2/fs/fesh2/fesh2
+    python setup.py install
+    ```
 You will then need to edit the **fesh2** configuration file for your station(s). 
-More information is provided below in the Configuration section.
+More information on configuration is provided below.
 
 ## Configuration
 **Fesh2** looks for a configuration file in `/usr2/control` called `fesh2.config`. 
