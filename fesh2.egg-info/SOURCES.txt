@@ -3,9 +3,9 @@ MANIFEST.in
 README.md
 setup.py
 fesh2/Drudgery.py
+fesh2/FeshConfig.py
 fesh2/MasterSession.py
 fesh2/SchedServer.py
-fesh2/SchedUpdateConfig.py
 fesh2/__init__.py
 fesh2/__main__.py
 fesh2/fesh2.config
