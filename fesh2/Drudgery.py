@@ -3,7 +3,6 @@ import os
 import pexpect
 import re
 import logging
-
 from os import path
 class Drudg:
     """ Tasks for managing interactions with Drudg"""
@@ -137,19 +136,19 @@ class Drudg:
             elif i==2:
                 # TPI period in centiseconds.
                 # child.expect('0 for OFF\): ', timeout=self.timeout_s)
-                child.sendline('{}'.format(conf.tpi_period))
+                child.sendline('{}'.format(conf.TpiPeriod))
             elif i==3:
                 # Cont cal action? on or off
                 # child.expect('on/off\) ', timeout=self.timeout_s)
-                child.sendline('{}'.format(conf.cont_cal_action))
+                child.sendline('{}'.format(conf.ContCalAction))
             elif i==4:
                 # Cont cal polarity (0-3 or none)
                 # child.expect('none\): ', timeout=self.timeout_s)
-                child.sendline('{}'.format(conf.cont_cal_polarity))
+                child.sendline('{}'.format(conf.ContCalPolarity))
             elif i==5:
                 # For PFB DBBCs" Enter in vsi_align (0,1,none): "
                 # child.expect('none\): ', timeout=self.timeout_s)
-                child.sendline('{}'.format(conf.vsi_align))
+                child.sendline('{}'.format(conf.VsiAlign))
 
             # look for information from drudg on where the snp or prc files were placed (if they were created):
             match_snp = re.search('From file\:\s\S*\sTo\s\S*\s\S*\s(\S*)',str(child.before))

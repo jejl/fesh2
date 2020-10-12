@@ -53,9 +53,11 @@ class SchedServer(object):
         self.url_prefix = ''
         self.local_dir = local_dir
 
-    def curl_setup(self, netrc_file, cookie_file):
+    def curl_setup(self, netrc_dir):
         logging.debug('Setting up curl....')
         # cookies and username/password
+        netrc_file = "{}/.netrc".format(netrc_dir)
+        cookie_file = "{}/.urs_cookies".format(netrc_dir)
         self.curl.setopt(self.curl.NETRC_FILE, netrc_file)
         self.curl.setopt(self.curl.NETRC, True)  # needed?
         self.curl.setopt(self.curl.COOKIEFILE, cookie_file)
@@ -73,10 +75,10 @@ class SchedServer(object):
         self.curl.setopt(self.curl.NOPROGRESS, False)
         self.curl.setopt(self.curl.XFERINFOFUNCTION, file_progress)
 
-        # give up if can't connect to server in 30 sec
-        self.curl.setopt(self.curl.CONNECTTIMEOUT, 30)
-        # give up if entire operation takes more than 120 sec
-        self.curl.setopt(self.curl.TIMEOUT, 120)
+        # give up if can't connect to server in 10 sec
+        self.curl.setopt(self.curl.CONNECTTIMEOUT, 10)
+        # give up if entire operation takes more than 60 sec
+        self.curl.setopt(self.curl.TIMEOUT, 60)
 
         logging.debug('Curl is configured.')
 
@@ -250,15 +252,21 @@ class SchedServer(object):
                 (size_download,file_time) = self.report_file_stats()
                 # file isn't newer but we did get a time
                 success = True
-
             elif status == 304:
                 # got an empty file because it hasn't changed
                 logging.info("The server file hasn't changed. Return status: {}".format(status))
                 # delete temporary file
                 file_time = 0
                 success = True
+            elif status == 35:
+                logging.warning("Failed to connect to server. The SSL handshake failed.")
+                file_time = 0
             elif status == 28:
                 logging.warning("Failed to get file from server due to timeout.")
+                file_time = 0
+            elif status == 9:
+                logging.warning("Failed to get file from server. Access denied. It's likely the directory does not "
+                                "exist yet.")
                 file_time = 0
             else:
                 logging.warning("Failed to get file from server. Return status = {}".format(status))
@@ -337,8 +345,8 @@ class SchedFileServer(SchedServer):
     def check_exists_sched(self, code, config):
         """ Given an obs code and directory, look for supported schedule files and return
             True if the file exists and the type (either vex or skd)"""
-        for ty in config.sched_types:
-            local_file = "{}/{}.{}".format(config.config['FS']['sched_dir'], code, ty)
+        for ty in config.SchedTypes:
+            local_file = "{}/{}.{}".format(config.SchedDir, code, ty)
             if path.exists(local_file):
                 return True, ty
         # If we get here then the schedule file wasn't found

@@ -51,6 +51,14 @@ There are two wa
 You will then need to edit the **fesh2** configuration file for your station(s). 
 More information on configuration is provided below.
 
+### PycURL dependency
+Fesh2 depends on the python CURL library ([PycURL](http://pycurl.io/docs
+/latest/index.html)) which should be installed automatically when you install
+ fesh2. However, PycURL depends on the Python development libraries, and it
+  won't install if they're not there. On a Debian machine, `apt-get install
+   python-dev` should do the trick, or for Python version 3, try `apt-get
+    install python3-dev`.
+    
 ## Configuration
 **Fesh2** looks for a configuration file in `/usr2/control` called `fesh2.config`. 
 *This will need to be set up for your station before running **fesh2** for
@@ -73,13 +81,20 @@ https (secure HTTP), ftp (anonymous FTP) and ftps (secure (SSL) anonymous FTP).
 **Fesh2** uses [curl](http://pycurl.io/docs/latest/index.html) to access files 
 on the servers. If https is being used
  (e.g. to access the CDDIS repository), then **fesh2** needs to know the
-  location of your `.netrc` and `.urs_cookies` files. If you  don't  intend to use  https then place empty files in these locations. 
+  location of your `.netrc` and `.urs_cookies` files. Curl puts these in the user's
+  home directory by default but they can be placed elsewhere if desired. This can be set
+  on the command line or via the NETRC_DIR environment variable or in the config file by setting the NetrcDir parameter.
+  . The command-line overrides
+  the environment variable which overrides the config fileIf you  don't  intend to 
+  use https then place empty files in these locations. 
 
 ### Drudg
 After finding and downloading a new or updated schedule, Fesh2 can optionally run Drudg to produce
  new snp, prc and lst files. The `[Drudg]` section allows you to configure
-  this behaviour. If you don't want **fesh2** to automatically process your
-   schedules (it will overwrite old files), this feature con be turned off be
+  this behaviour. It is assumed that **drudg** will be run from the schedule
+   file directory (usually `/usr2/sched`). If you don't want **fesh2** to
+   automatically process your
+   schedules (it will overwrite old files), this feature con be turned off by
     setting `do_drudg` to `False`.
 
 ## Usage
@@ -135,3 +150,48 @@ optional arguments:
 As well as writing information to the screen on activity, **fesh2** also
  keeps a log of activity in the Field System log directory at `/usr2/log
  /fesh2.log`. 
+
+## Running fesh2 as a service
+Fesh2 can be run in the background as a `systemd` service. All output is
+ supressed and status is available by examining the log file or using the
+  `--check` or `-e` flag. Here's how to set it up from the superuser account:
+  
+1. Type the following command to add a `systemd` service: 
+    ```
+   systemctl edit --force --full fesh2.service
+   ```
+    This should open a text editor. Paste in the following:
+    ```
+   [Unit]
+   Description=Fesh2 Service
+   After=network-online.target
+   Wants=network-online.target
+   
+   [Service]
+   ExecStart=sudo -H -u oper /usr/local/bin/fesh2 --quiet
+   
+   [Install]
+   WantedBy=multi-user.target
+   ```
+   Save and exit. This will configure `systemd` to start fesh2, running as user
+    oper and suppress all output.
+2. Enable the service:
+    ```
+    sudo systemctl enable fesh2.service
+    ```
+3. Check the status of the service:
+    ```
+    sudo systemctl status fesh2.service
+    ```
+4. You can stop, start and query the service:
+    ```
+    sudo systemctl stop fesh2.service          # Stop running the service 
+    sudo systemctl start fesh2.service         # Start running the service 
+    sudo systemctl restart fesh2.service       # Restart the service 
+    ```
+5. To see the current schedule file status (as user oper):
+    ```
+   fesh2 --check
+   ```
+   
+  
