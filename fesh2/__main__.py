@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 # TODO: Move to toml for configuration?
 # TODO: If NETRC_DIR is defined, use it in preference to config file
 # TODO: respect sked.ctl. See https://github.com/jejl/fesh2/issues/1
+# TODO: Add SnapDir definition
 
 # TODO: Test with different Python versions. 2.7.3, 3.2.3 on pcfshb back to v 3.5.3 and v 2.7
 # TODO: Test on old versions of Debian: Etch, Wheezy
