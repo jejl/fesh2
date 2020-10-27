@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 # Inspired by nobs and fesh
+import errno
 from collections import OrderedDict
 
 import configargparse
@@ -14,6 +15,7 @@ import time
 import string
 import signal
 import re
+import fcntl
 
 from functools import partial
 from logging.handlers import RotatingFileHandler
@@ -84,10 +86,11 @@ def main_task(config):
 
     # list of all sessions in time order
     sessions_queue_ses = read_master(mstrs, config.year, config.Stations)
-    # which session(s) we process depends on arguments and config
+    # which session(s) we process depends on arguments and config. After this section we'll
+    # end up with a list of sessions requiring processing in sessions_to_process
     sessions_to_process = []
     if config.g:
-        # if args.g is set then we want a specific session regardless of time or anything else
+        # if config.g is set then we want a specific session regardless of time or anything else
         sessions_to_process = list(
             filter(lambda i: i.code in config.g, sessions_queue_ses)
         )
@@ -95,7 +98,7 @@ def main_task(config):
         now = datetime.utcnow()
         for ses in sessions_queue_ses:
             if config.current and (ses.start <= now < ses.end or ses.start >= now):
-                # ifargs.current is set then get the current or next session
+                # if config.current is set then get the current or next session
                 sessions_to_process = [ses]
                 # now break out of the for loop
                 break
@@ -120,6 +123,7 @@ def main_task(config):
         logging.warning("No sessions were found that satisfy the criteria")
     else:
         # Process each session in the list
+        # TODO: Manage requests from multiple instances of fesh2 with a lock file
         for ses in sessions_to_process:
             (got_sched_file, new, sched_type) = check_sched(ses, config)
             if not config.check:
@@ -185,6 +189,17 @@ def check_master(cnf, intensive=False):
     :return: Has a new version been retrieved?
     :rtype: boolean
     """
+
+    """
+    Lock out other fesh2 instances from manipulating files. 
+    Wait here until the lock file is unlocked so multiple instances of fesh2 don't
+    attempt downloads etc at once. Go ahead though if config.check is set because it doesn't
+    change local files.
+    """
+    lock = Locker()
+    if not cnf.check:
+        lock.lock()
+
     new_sched = False
     if not intensive:
         cnf.logger.info(
@@ -237,6 +252,12 @@ def check_master(cnf, intensive=False):
                 cnf.MasterCheckTime
             )
         )
+    # release the lock file and tidy up
+    if not cnf.check:
+        lock.unlock()
+    lock.close()
+    del lock
+
     return new_sched
 
 
@@ -254,6 +275,17 @@ def check_sched(ses, config):
     sched_type: file type (vex or skd)
     :rtype: boolean, boolean, string
     """
+
+    """
+    Lock out other fesh2 instances from manipulating files. 
+    Wait here until the lock file is unlocked so multiple instances of fesh2 don't
+    attempt downloads etc at once. Go ahead though if config.check is set because it doesn't
+    change local files.
+    """
+    lock = Locker()
+    if not config.check:
+        lock.lock()
+
     now = datetime.utcnow()
     new = False
     got_sched_file = False
@@ -357,6 +389,11 @@ def check_sched(ses, config):
                 sched_type = type
                 break
     sched_server.curl_close()
+    # release the lock file and tidy up
+    if not config.check:
+        lock.unlock()
+    lock.close()
+    del lock
 
     return (got_sched_file, new, sched_type)
 
@@ -381,6 +418,17 @@ def drudg_session(ses, config, got_sched_file, new, sched_type):
     if not config.DoDrudg:
         logging.info("Drudg will not be run on the schedule file")
     else:
+
+        """
+        Lock out other fesh2 instances from manipulating files. 
+        Wait here until the lock file is unlocked so multiple instances of fesh2 don't
+        attempt to drudg files at the same time. Go ahead though if config.check is set because it doesn't
+        change local files.
+        """
+        lock = Locker()
+        if not config.check:
+            lock.lock()
+
         update_stns = []
         drg = Drudg(
             config.DrudgBinary,
@@ -417,6 +465,12 @@ def drudg_session(ses, config, got_sched_file, new, sched_type):
                     "Drudg created the following files: {} {} {}".format(o1, o2, o3)
                 )
                 # put them in the locations specified by the config file
+
+        # release the lock file and tidy up
+        if not config.check:
+            lock.unlock()
+        lock.close()
+        del lock
 
 
 def show_summary(config, mstrs, sessions_to_process):
@@ -608,6 +662,9 @@ def read_master(files, year, stations):
 
 
 class CustomConfigParser:
+    """ Used by ConfigParser to read the skedf.ctl file
+    """
+
     def __init__(self, *args, **kwargs):
         super(CustomConfigParser, self).__init__(*args, **kwargs)
 
@@ -641,7 +698,6 @@ class CustomConfigParser:
                 if key in ["print", "misc"]:
                     # these classify multiple key/value pairs
                     white_space = "\s*"
-                    # TODO: up to here equipment_override has e chopped off
                     key_val_regex = "^\s*(?P<key>\w*)\s*(?P<value>.*?)"
                     match = re.match(
                         key_val_regex + space_and_comment_regex + "$", line
@@ -680,11 +736,11 @@ class Args:
 
         items = OrderedDict()
         for keyval in args_skedf[1]:
-            if '=' in keyval:
+            if "=" in keyval:
                 (k, v) = keyval.split("=")
                 print(k, v)
                 items[k[2:]] = v
-        #TODO: up to here. decide how to assign defaults for fesh
+        # TODO: up to here. decide how to assign defaults for fesh
 
         now = datetime.utcnow()
         self.parser = configargparse.ArgParser(
@@ -722,23 +778,26 @@ class Args:
         )
 
         self.parser.add_argument(
-            "--TopDir", default="/usr2", help="Top directory for the Field System. the fs, st and control directories "
-                                              "top directory",
+            "--TopDir",
+            default="/usr2",
+            help="Top directory for the Field System. the fs, st and control directories "
+            "top directory",
         )
 
         self.parser.add_argument(
             "--StDir", default="/usr2/st", help="Station-specific FS directory",
         )
 
-
         self.parser.add_argument(
             "--SchedDir",
-            default=get_default(items, 'schedules', '/usr2/sched/'),
+            default=get_default(items, "schedules", "/usr2/sched/"),
             help="Schedule directory (including Master file)",
         )
 
         self.parser.add_argument(
-            "--ProcDir", default=get_default(items, 'proc', '/usr2/proc/'), help="Procedure file directory",
+            "--ProcDir",
+            default=get_default(items, "proc", "/usr2/proc/"),
+            help="Procedure file directory",
         )
 
         self.parser.add_argument(
@@ -950,15 +1009,17 @@ class Args:
             raise configargparse.ArgumentTypeError(msg)
         return str
 
-def get_default(items, key, defult):
-    ''' given a dict, a key and a default, if the item[key] exists and it's not
+
+def get_default(items, key, default):
+    """ given a dict, a key and a default, if the item[key] exists and it's not
     and empty string, return it as the default, otherwise 'default' is the default
-    '''
+    """
     if key in items.keys():
-        if items[key] != '':
+        if items[key] != "":
             return items[key]
         else:
             return default
+
 
 def start_thread_main(event, config):
     """
@@ -1104,6 +1165,44 @@ def signal_handler(event, thread, sig, frame):
             logging.warning("Thread terminated.")
     logging.warning("Exiting.")
     sys.exit(0)
+
+
+class Locker:
+    """ Manage the lock file which prevents multiple instances of fesh2 from downloading
+    or processing logs at the same time
+    """
+
+    def __init__(self):
+        # location of the lock file
+        self.lock_file = "/tmp/fesh2.lock"
+        self.lock_fh = open(self.lock_file, "w+")
+
+    def lock(self):
+        # Attempt to lock out the file. Wait indefinitely?
+        # wait time in sec
+        wait_time = 10
+        logging.debug("Attempting to lock the lock file")
+        while True:
+            try:
+                fcntl.flock(self.lock_fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except IOError as e:
+                if e.errno != errno.EAGAIN:
+                    raise
+                else:
+                    logging.warning(
+                        "Another instance of fesh2 is accessing schedule files. Waiting for it to complete. "
+                        "Will check again in {} sec".format(wait_time)
+                    )
+                    time.sleep(wait_time)
+
+    def unlock(self):
+        # Unlock the file so other fesh2 processes can manipulate schedule files etc
+        logging.debug("Unlocking the lock file")
+        fcntl.flock(self.lock_fh, fcntl.LOCK_UN)
+
+    def close(self):
+        self.lock_fh.close()
 
 
 def main():

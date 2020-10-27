@@ -77,7 +77,8 @@ The following environment variables are recognised by **fesh2**:
   directory by default. More information is given below on CURL configuration.
  * `LIST_DIR` : the directory where **drudg** puts `.lst` output files. If
   this is not set, then the `LstDir` parameter in `fesh2.config` is used if
-   set. Otherwise **drudg** defaults to the `$stations` parameter in `skedf.ctl`
+   set. Otherwise **drudg** defaults to the `$schedules` parameter in `skedf
+   .ctl`
 
 The following environment variables are _NOT_ recognised by **fesh2**:
 * `STATION` is used in the Field System but not recognised by **fesh2** as it
@@ -130,19 +131,21 @@ After finding and downloading a new or updated schedule, **Fesh2** can
 
 Because **fesh2** manages schedule files and uses **drudg** to process them, 
 and to keep things consistent across the Field System, it will use 
-settings in `skedf.ctl` if they are not overridden by `fesh2.config`. However, there are some caveats regarding `skedf.ctl` for the case where there is
+settings in `skedf.ctl`. 
+However, there are some caveats regarding `skedf.ctl` for the case where there is
  not an overriding definition:
  
-   * If `$schedules` is not set then **fesh2** will put schedule files in
-    `/usr2/sched` unless specified in `fesh2.config`
-   * The above also applies for `$snap` and `$proc`
+   * **Fesh2** requires that `$schedules` is defined in `skedf.ctl`. The
+    default of '.' (i.e. the directory the software is started in) is too
+     arbitrary and could cause **fesh2** to lose track of files.
+   * If `$snap` or `$proc` are not defined, then they will be set to the same as
+   `$schedules`
  
 Depending on how it is configured by `skedf.ctl`, **drudg** may prompt
 the user for input. For example, if `tpicd` is set to 'YES' then **Drudg** 
 will prompt the user for a TPI sampling period every time. This
 needs to be automated in **fesh2**, so a value must be set and will override 
-whatever is set in `skedf.ctl`. The
- table below details how **fesh2** handles these cases:
+whatever is set in `skedf.ctl`. The table below details how **fesh2** handles these cases:
      
  `skedf.ctl` condition       | **fesh2** reaction
  --------------------------- | ------------------------------

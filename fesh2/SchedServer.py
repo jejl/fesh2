@@ -56,8 +56,8 @@ class SchedServer(object):
     def curl_setup(self, netrc_dir):
         logging.debug('Setting up curl....')
         # cookies and username/password
-        netrc_file = "{}/.netrc".format(netrc_dir)
-        cookie_file = "{}/.urs_cookies".format(netrc_dir)
+        netrc_file = "{}/netrc".format(netrc_dir)
+        cookie_file = "{}/urs_cookies".format(netrc_dir)
         self.curl.setopt(self.curl.NETRC_FILE, netrc_file)
         self.curl.setopt(self.curl.NETRC, True)  # needed?
         self.curl.setopt(self.curl.COOKIEFILE, cookie_file)
@@ -260,6 +260,8 @@ class SchedServer(object):
                 success = True
             elif status == 35:
                 logging.warning("Failed to connect to server. The SSL handshake failed.")
+                logging.warning("This may be caused by a known problem that affects recent Debian linux distributions")
+                logging.warning("Try adding CurlSecLevel1 to fesh2.config")
                 file_time = 0
             elif status == 28:
                 logging.warning("Failed to get file from server due to timeout.")
