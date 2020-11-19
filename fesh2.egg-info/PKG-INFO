@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: fesh2
-Version: 2.0rc5
+Version: 2.1rc1
 Summary: Geodetic VLBI schedule management and processing
 Home-page: https://github.com/nvi-inc/fs
 Author: Jim Lovell
@@ -59,6 +59,14 @@ Description: # Fesh2: Geodetic VLBI schedule file management and processing
         You will then need to edit the **fesh2** configuration file for your station(s). 
         More information on configuration is provided below.
         
+        ### PycURL dependency
+        Fesh2 depends on the python CURL library ([PycURL](http://pycurl.io/docs
+        /latest/index.html)) which should be installed automatically when you install
+         fesh2. However, PycURL depends on the Python development libraries, and it
+          won't install if they're not there. On a Debian machine, `apt-get install
+           python-dev` should do the trick, or for Python version 3, try `apt-get
+            install python3-dev`.
+            
         ## Configuration
         **Fesh2** looks for a configuration file in `/usr2/control` called `fesh2.config`. 
         *This will need to be set up for your station before running **fesh2** for
@@ -144,5 +152,49 @@ Description: # Fesh2: Geodetic VLBI schedule file management and processing
          keeps a log of activity in the Field System log directory at `/usr2/log
          /fesh2.log`. 
         
+        ## Running fesh2 as a service
+        Fesh2 can be run in the background as a `systemd` service. All output is
+         supressed and status is available by examining the log file or using the
+          `--check` or `-e` flag. Here's how to set it up from the superuser account:
+          
+        1. Type the following command to add a `systemd` service: 
+            ```
+           systemctl edit --force --full fesh2.service
+           ```
+            This should open a text editor. Paste in the following:
+            ```
+           [Unit]
+           Description=Fesh2 Service
+           After=network-online.target
+           Wants=network-online.target
+           
+           [Service]
+           ExecStart=sudo -H -u oper /usr/local/bin/fesh2 --quiet
+           
+           [Install]
+           WantedBy=multi-user.target
+           ```
+           Save and exit. This will configure `systemd` to start fesh2, running as user
+            oper and suppress all output.
+        2. Enable the service:
+            ```
+            sudo systemctl enable fesh2.service
+            ```
+        3. Check the status of the service:
+            ```
+            sudo systemctl status fesh2.service
+            ```
+        4. You can stop, start and query the service:
+            ```
+            sudo systemctl stop fesh2.service          # Stop running the service 
+            sudo systemctl start fesh2.service         # Start running the service 
+            sudo systemctl restart fesh2.service       # Restart the service 
+            ```
+        5. To see the current schedule file status (as user oper):
+            ```
+           fesh2 --check
+           ```
+           
+          
 Platform: UNKNOWN
 Description-Content-Type: text/markdown

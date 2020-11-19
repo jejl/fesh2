@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from datetime import datetime, timedelta
 
+
 class Session:
     def __init__(self, s, year):
         d = s.strip(' \n|').split('|')
