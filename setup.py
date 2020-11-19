@@ -78,7 +78,7 @@ if not skip_pre_and_post:
 
 setup(
     name='fesh2',
-    version='2.1rc1',
+    version='2.1rc2',
     url='https://github.com/nvi-inc/fs',
     license='GPL v3',
     author='Jim Lovell',

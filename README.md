@@ -16,19 +16,20 @@ If new or updated schedules are found, they are optionally processed with **Drud
 to produce `snp`, `prc` and `lst` files. By default, once the files have been
 checked, **fesh2** will provide a summary and then go into a wait
 state before carrying out another check. **Fesh2** can also be run once for a 
-single check and not go into a wait state.
-
+single check or status report and not go into a wait state.
+Multiple instances can be run simultaneously. If drudg output (`snp` or `prc
+` files) have been modified by the user and a new schedule becomes available
+, **fesh2** will download the file but not overwrite Drudg output, but it
+ will warn the user.
+  
 **Fesh2** can be run as a foreground application or as a service in the
  background.
 
 ## Compatibility
   * **Fesh2** has been tested for the following Python versions:
     * 2.7.16
+    * 3.5.3
     * 3.7.3
-    * 3.8.2
-  * Limited testing has been carried out with version 3.5.3 but it appears to
-   work with this
-   version too.
 
 ## Installation
 **Fesh2** will eventually be distributed as part of the 
@@ -39,6 +40,10 @@ single check and not go into a wait state.
 ### Option 1: pip
 ```
 pip install fesh2
+```
+or for Python version 3:
+```
+pip3 install fesh2
 ```
 
 ### Option 2: Manual installation
@@ -52,11 +57,13 @@ pip install fesh2
     cd /usr2/fs/fesh2/fesh2
     python setup.py install
     ```
+Replace `python` with `python3` above for installation under Python version 3.
 You will then need to edit the **fesh2** configuration file for your station(s). 
 More information on configuration is provided below.
 
 ### PycURL dependency
-Fesh2 depends on the python CURL library ([PycURL](http://pycurl.io/docs/latest/index.html)) which should be installed automatically when you install
+Fesh2 depends on the python CURL library ([PycURL](http://pycurl.io/docs/latest/index.html)) 
+which should be installed automatically when you install
  fesh2. However, PycURL depends on the Python development libraries, and it
   won't install if they're not there. On a Debian machine, `apt-get install
    python-dev` should do the trick, or for Python version 3, try `apt-get
@@ -72,13 +79,14 @@ Fesh2 depends on the python CURL library ([PycURL](http://pycurl.io/docs/latest/
 
 ### Environment Variables
 The following environment variables are recognised by **fesh2**:
- * `NETRC_DIR` : the directory containing the `.netrc` and `.urs_cookies
- ` files, needed by CURL for the https protocol. Curl sets ths to the home
+ * `NETRC_FILE` and `COOKIES_FILE`: the locations of the `.netrc` and
+  `.urs_cookies
+ ` files, used by CURL for the https protocol. Curl sets these to files in the
+  home
   directory by default. More information is given below on CURL configuration.
  * `LIST_DIR` : the directory where **drudg** puts `.lst` output files. If
   this is not set, then the `LstDir` parameter in `fesh2.config` is used if
-   set. Otherwise **drudg** defaults to the `$schedules` parameter in `skedf
-   .ctl`
+   set. Otherwise **drudg** defaults to the `$schedules` parameter in `skedf.ctl`
 
 The following environment variables are _NOT_ recognised by **fesh2**:
 * `STATION` is used in the Field System but not recognised by **fesh2** as it
@@ -110,15 +118,13 @@ https (secure HTTP), ftp (anonymous FTP) and ftps (secure (SSL) anonymous FTP).
 **Fesh2** uses [curl](http://pycurl.io/docs/latest/index.html) to access files 
 on the servers. If https is being used
  (e.g. to access the CDDIS repository), then **fesh2** needs to know the
-  location of your `.netrc` and `.urs_cookies` files. Curl puts these in the user's
+  location of your `.netrc` and (optionally) `.urs_cookies` files. Curl
+   puts these in the user's
   home directory by default but they can be placed elsewhere if desired. This can be set
-  on the command line or via the NETRC_DIR environment variable (see above
-  ) or in the **fesh2** config file by setting the NetrcDir parameter. The
-   command-line overrides
-  the environment variable which overrides the config file. If you  don't
-    intend to 
-  use https then place empty `.netrc` and `.urs_cookies` files in these
-   locations. 
+  on the command line or via the NETRC_FILE and COOKIES_FILE environment
+   variables (see above
+  ) or in the **fesh2** config file by setting the NetrcFile and CookiesFile
+   parameters. 
 
 #### Drudg
 After finding and downloading a new or updated schedule, **Fesh2** can
@@ -126,7 +132,7 @@ After finding and downloading a new or updated schedule, **Fesh2** can
  new snp, prc and lst files. The `[Drudg]` section allows you to configure
   this behaviour. If you don't want **fesh2** to
    automatically process your
-   schedules (it will overwrite old files), this feature con be turned off by
+   schedules, this feature con be turned off by
     setting `DodDrudg` to `False`.
 
 Because **fesh2** manages schedule files and uses **drudg** to process them, 
@@ -168,11 +174,174 @@ fesh2
 ```
 which starts it in its default mode. However command-line options exist to
  change many of the configuration parameters, allow for a one-off checks
-  (no wait mode), forcing of file downloads etc. Command-line parameters are
-   as follows:  
+  (no wait mode), forcing of file downloads etc. Some common usages are:
+  
+
+* Only consider the current or next experiment
+```
+fesh2 -n
+```
+
+* Just run once then exit, don't go into a wait loop
+```
+fesh2 --once
+```
+
+* Just get a schedule for a specified session, then exit. e.g.:
+```
+fesh2 --once -g r1456
+```
+                        
+* Force an update to the schedule file when there's a
+new one available to replace the old one. The default
+behaviour is to give the new file the name
+<code>.skd.new and prompt the user to take action. The
+file will also be drudged if the DoDrudg option is
+True (default = False)
+```
+fesh2 --update
+```
+
+* Obtain schedule files, but don't process them:
+```
+fesh2 --DoDrudg False
+```
+
+* Get a status report. Shows the status of schedule files and when schedule
+ servers were last queried.
+```
+fesh2 --check
+```
+                        
+* Run fesh2 with all terminal output suppressed. Useful when running fesh2 as
+ a service.
+```
+fesh2 --quiet
+```
+
+All command-line parameters are as follows:  
 
 ```
-TBD
+usage:       fesh2 [-h] [-c CONFIGFILE] [-g G] [-m] [-u] [-n] [-a] [-o]
+                   [--update] [--SchedDir SCHEDDIR] [--ProcDir PROCDIR]
+                   [--SnapDir SNAPDIR] [--LstDir LSTDIR] [--LogDir LOGDIR]
+                   --Stations [STATIONS [STATIONS ...]]
+                   [--GetMaster [GETMASTER]]
+                   [--GetMasterIntensive [GETMASTERINTENSIVE]]
+                   [--SchedTypes [SCHEDTYPES [SCHEDTYPES ...]]] -t
+                   MASTERCHECKTIME -s SCHEDULECHECKTIME [-l LOOKAHEADTIMEDAYS]
+                   [-d [DODRUDG]] --DrudgBinary DRUDGBINARY
+                   [--TpiPeriod TPIPERIOD] [--VsiAlign VSIALIGN]
+                   [--ContCalAction CONTCALACTION]
+                   [--ContCalPolarity CONTCALPOLARITY]
+                   [--Servers [SERVERS [SERVERS ...]]] [--NetrcFile NETRCFILE]
+                   [--CookiesFile COOKIESFILE]
+                   [--CurlSecLevel1 [CURLSECLEVEL1]] [-y YEAR] [-e] [-q]
+
+Automated schedule file preparation for the current, next or specified
+session. A check for the latest version of the Master File(s) is done first,
+but skipped if the time since the last check is less than a specified amount
+(configureable on the command line or in the config file). Similarly, checks
+on schedule files are only done if the time since the last check exceeds a
+specified time. Checks can be forced on the command line. Args that start with
+'--' (eg. -m) can also be set in a config file (/usr2/control/fesh2.config or
+specified via -c). Config file syntax allows: key=value, flag=true,
+stuff=[a,b,c] (for details, see syntax at https://goo.gl/R74nmi). If an arg is
+specified in more than one place, then commandline values override environment
+variables which override config file values which override defaults.
+optional arguments:
+
+  -h, --help            show this help message and exit
+  -c CONFIGFILE, --ConfigFile CONFIGFILE
+                        The configuration file to use. (default is
+                        ['/usr2/control/fesh2.config'])
+  -g G                  Just get a schedule for this specified session. Give
+                        the name of the session (e.g. r4951).
+  -m, --master-update   Force a download of the Master Schedule (default =
+                        False), but just on the first check cycle.
+  -u, --sched-update    Force a download of the Schedules (default = False),
+                        but just on the first check cycle.
+  -n, --current, --now  Only process the current or next experiment
+  -a, --all             Find the experiments with all "Stations" in it
+  -o, --once            Just run once then exit, don't go into a wait loop
+                        (default = False)
+  --update              Force an update to the schedule file when there's a
+                        new one available to replace the old one. The default
+                        behaviour is to give the new file the name
+                        <code>.skd.new and prompt the user to take action. The
+                        file will also be drudged if the DoDrudg option is
+                        True (default = False)
+  --SchedDir SCHEDDIR   Schedule file directory
+  --ProcDir PROCDIR     Procedure (PRC) file directory
+  --SnapDir SNAPDIR     SNAP file directory
+  --LstDir LSTDIR       LST file directory [env var: LIST_DIR]
+  --LogDir LOGDIR       Log file directory
+  --Stations [STATIONS [STATIONS ...]]
+                        Stations to consider (default "hb ke yg ho")
+  --GetMaster [GETMASTER]
+                        Maintain a local copy of the main Multi-Agency
+                        schedule, i.e. mostly 24h sessions (default = True)
+  --GetMasterIntensive [GETMASTERINTENSIVE]
+                        Maintain a local copy of the main Multi-Agency
+                        Intensive schedul (default = True)
+  --SchedTypes [SCHEDTYPES [SCHEDTYPES ...]]
+                        Schedule file formats to be obtained? This is a
+                        prioritised list with the highest priority first. Use
+                        the file name suffix (vex and/or skd) and comma-
+                        separated
+  -t MASTERCHECKTIME, --MasterCheckTime MASTERCHECKTIME
+                        Only check for a new master file if the last check was
+                        more than this number of hours ago. The default is set
+                        in the configuration file.
+  -s SCHEDULECHECKTIME, --ScheduleCheckTime SCHEDULECHECKTIME
+                        Only check for a new schedule file (SKD or VEX) if the
+                        last check was more than this number of hours ago. The
+                        default is set in the configuration file.
+  -l LOOKAHEADTIMEDAYS, --LookAheadTimeDays LOOKAHEADTIMEDAYS
+                        only look for schedules less than this number of days
+                        away (default is 7)
+  -d [DODRUDG], --DoDrudg [DODRUDG]
+                        Run Drudg on the downloaded/updated schedules (default
+                        = True)
+  --DrudgBinary DRUDGBINARY
+                        Location of Drudg executable (default =
+                        /usr2/fs/bin/drudg)
+  --TpiPeriod TPIPERIOD
+                        Drudg config: TPI period in centiseconds. 0 = don't
+                        use the TPI daemon (default)
+  --VsiAlign VSIALIGN   Drudg config: Applicable only for PFB DBBCs, none =
+                        never use dbbc=vsi_align=... (default) 0 = always use
+                        dbbc=vsi_align=0 1 = always use dbbc=vsi_align=1
+  --ContCalAction CONTCALACTION
+                        Drudg config: Continuous cal option. Either 'on' or
+                        'off'. Default is 'off'
+  --ContCalPolarity CONTCALPOLARITY
+                        Drudg config: If continuous cal is in use, what is the
+                        polarity? Options are 0-3 or 'none'. Default is none
+  --Servers [SERVERS [SERVERS ...]]
+                        Schedule file server URLs. Each of these will be
+                        checked for the most recent files. Use comma-separated
+                        URLs and specify the top directory (i.e. the 'vlbi'
+                        directory). Use protocols https (Curl), ftp (anonymous
+                        FTP) or sftp (anonymous secure FTP)
+  --NetrcFile NETRCFILE
+                        The location of the .netrc file, needed by CURL for
+                        the https protocol. (CURL puts this in ~/.netrc by
+                        default) [env var: NETRC_FILE]
+  --CookiesFile COOKIESFILE
+                        The location of the .urs_cookies files used by CURL.
+                        (CURL puts this in ~/.urs_cookies by default) [env
+                        var: COOKIES_FILE]
+  --CurlSecLevel1 [CURLSECLEVEL1]
+                        Workaround for CDDIS https access in some Debian
+                        distributions. See the documentation (default = False)
+  -y YEAR, --year YEAR  The year of the Master Schedule (default is 2020)
+  -e, --check           Check the current fesh2 status. Shows if the systemd
+                        service is running and prints the status of schedule
+                        files
+  -q, --quiet           Runs fesh2 with all terminal output suppressed. Useful
+                        when running fesh2 as a service.
+
 ```
 
 ## Logging
@@ -183,7 +352,8 @@ keeps a log of activity in the Field System log directory (by default) at
 ## Running fesh2 as a service
 Fesh2 can be run in the background as a `systemd` service. All output is
  suppressed and status is available by examining the log file or using the
-  `--check` or `-e` flag. Here's how to set it up from the superuser account:
+  `--check` or `-e` flag. Here's how to set it up from the superuser account
+   for Debian Jessie or later:
   
 1. Type the following command to add a `systemd` service: 
     ```
@@ -223,4 +393,9 @@ Fesh2 can be run in the background as a `systemd` service. All output is
    fesh2 --check
    ```
    
-  
+If you would prefer to set this up as a user service, some notes are here:
+* https://www.unixsysadmin.com/systemd-user-services/
+
+For versions of Debian older thean Jessie (e.g. Wheezy), systemd can be
+ enabled and some notes are here:
+* https://scottlinux.com/2014/10/20/how-to-switch-to-systemd-on-debian-wheezy/

@@ -3,11 +3,12 @@ import os
 import pexpect
 import re
 import logging
+import time
 from os import path
 class Drudg:
     """ Tasks for managing interactions with Drudg"""
 
-    def __init__(self, which_drudg, sched_dir, proc_dir, sched_type, lst_dir):
+    def __init__(self, which_drudg, sched_dir, proc_dir, sched_type, lst_dir, snap_dir):
         """
 
         :param which_drudg: Location of drudg executable (usually /usr2/fs/bin/drudg)
@@ -22,11 +23,14 @@ class Drudg:
         self.proc_dir = proc_dir
         self.sched_type = sched_type
         self.lst_dir = lst_dir
+        self.snap_dir = snap_dir
         pass
 
-    def check_drudg_output_time(self, sched_dir, proc_dir, sched_type, code, station):
-        """checking if the SNP and PRC files exist and are newer than the schedule file
-        :param sched_dir: directory where the schedule files are kept
+    def check_drudg_output_time(self, sched_dir, snap_dir, proc_dir, sched_type, code, station):
+        """checking if the SNP and PRC files exist and are newer than the schedule file.
+        Returns: True if the SNP/PRC files are the same date or later than the SKD
+                 False if SKD is newer than SNP/PRC
+        :param snap_dir: directory where the schedule files are kept
         :param sched_type: Schedule type ('vex' or 'skd')
         :param proc_dir: directory where the procedure files are kept
         :param code: observation code (sched file is <code>.skd or <code>.vex)
@@ -34,7 +38,7 @@ class Drudg:
         """
         found = True
         location = {}
-        directory = {'snp': sched_dir, 'prc': proc_dir}
+        directory = {'snp': snap_dir, 'prc': proc_dir}
         for extension in ['snp', 'prc']:
             location[extension] = '{}/{}{}.{}'.format(directory[extension],code,station,extension)
             found = path.exists(location[extension]) and found
@@ -46,21 +50,51 @@ class Drudg:
         sched_mtime = os.stat(sched_filename).st_mtime
         snp_mtime = os.stat(location['snp']).st_mtime
         prc_mtime = os.stat(location['prc']).st_mtime
-        if (snp_mtime > sched_mtime) and (prc_mtime > sched_mtime):
+        if (snp_mtime >= sched_mtime) and (prc_mtime >= sched_mtime):
             # We are up to date
             return True
         else:
             # The schedule file was modified after the SNP and/or PRC file
             return False
 
+    def unexpected_response(self, errtext, child):
+        logging.error(errtext)
+        child.close()
+
+    def pattern_response(self, child, pattern, expected_index, errmsg):
+        try:
+            index = child.expect(pattern, timeout=self.timeout_s)
+            if index == expected_index:
+                return True
+            else:
+                # unexpected response from Drudg
+                self.unexpected_response(errmsg,child)
+                return False
+        except pexpect.EOF:
+            # unexpected response from Drudg
+            self.unexpected_response(errmsg, child)
+            return False
+        except pexpect.TIMEOUT:
+            # unexpected response from Drudg
+            self.unexpected_response(errmsg, child)
+            return False
+
     def godrudg(self,station,code,conf):
-        child = pexpect.spawn('{} {}/{}.{}'.format(self.drudg_exec,self.sched_dir,code,self.sched_type))
+        schedfile = '{}/{}.{}'.format(self.sched_dir,code,self.sched_type)
+        child = pexpect.spawn('{} {}'.format(self.drudg_exec,schedfile))
         # verbose output for pexpect. Comment to turn off:
         # child.logfile = sys.stdout.buffer
-        child.expect('\) \? ', timeout=self.timeout_s)
+        pattern = ['which station .*all\) \? ', '\r\n \?']
+
+        errmsg = "Expected a prompt for a station name from Drudg, but didn't get it."
+        if not self.pattern_response(child, pattern, 0, errmsg):
+            return (False, None, None, None)
 
         child.sendline(station)
-        child.expect(' \?', timeout=self.timeout_s)
+        # We have selected a station. Next expected pattern is a ? prompt
+        errmsg = "Expected a menu prompt from Drudg, but didn't get it."
+        if not self.pattern_response(child, pattern, 1, errmsg):
+            return (False, None, None, None)
 
         # Make SNAP File
         child.sendline('3')
@@ -95,7 +129,7 @@ class Drudg:
 
         # Make sure the output files go to the right directories.
         # The LST file should be fine because we specify location during Drudg.
-        outfile_snp_target = "{}/{}{}.snp".format(self.sched_dir,code,station)
+        outfile_snp_target = "{}/{}{}.snp".format(self.snap_dir,code,station)
         os.rename(outfile_snp, outfile_snp_target)
         outfile_snp = outfile_snp_target
         outfile_prc_target = "{}/{}{}.prc".format(self.proc_dir,code,station)
@@ -103,8 +137,26 @@ class Drudg:
         outfile_prc = outfile_prc_target
         logging.debug("outfiles = {}, {}, {}".format(outfile_snp,outfile_prc,outfile_lst))
 
-        return(outfile_snp,outfile_prc,outfile_lst)
+        # set the modification times of the output files to the same as the skd file
+        # that way, if a user modifies a skd or prc file, it will be noiced by fesh2
+        # and a re-drudge won't be done automatically
+        stinfo = os.stat(schedfile)
+        modtime = stinfo.st_mtime
+        self.set_file_times_anow(outfile_snp,modtime)
+        self.set_file_times_anow(outfile_prc,modtime)
+        self.set_file_times_anow(outfile_lst,modtime)
 
+        child.close()
+        return(True,outfile_snp,outfile_prc,outfile_lst)
+
+    def set_file_times_anow(self, local_file, modTime):
+        """Change the access time of the file to now and the modification time to modTime."""
+        atime = time.time()
+        logging.debug(
+            "set_file_times_anow: setting access and mod time for {} to {} and {}".format(local_file, atime,
+                                                                                          modTime))
+        os.utime(local_file, (atime, modTime))
+        return True
 
     def expect_drudg_prompts(self, child, conf):
         # Looking for a case where we may have to submit a response to a
@@ -136,18 +188,22 @@ class Drudg:
             elif i==2:
                 # TPI period in centiseconds.
                 # child.expect('0 for OFF\): ', timeout=self.timeout_s)
+                logging.debug("Sending TPI period {}".format(conf.TpiPeriod))
                 child.sendline('{}'.format(conf.TpiPeriod))
             elif i==3:
                 # Cont cal action? on or off
                 # child.expect('on/off\) ', timeout=self.timeout_s)
+                logging.debug("Sending ContCalAction {}".format(conf.ContCalAction))
                 child.sendline('{}'.format(conf.ContCalAction))
             elif i==4:
                 # Cont cal polarity (0-3 or none)
                 # child.expect('none\): ', timeout=self.timeout_s)
+                logging.debug("Sending ContCalPolarity {}".format(conf.ContCalPolarity))
                 child.sendline('{}'.format(conf.ContCalPolarity))
             elif i==5:
                 # For PFB DBBCs" Enter in vsi_align (0,1,none): "
                 # child.expect('none\): ', timeout=self.timeout_s)
+                logging.debug("Sending VsiAlign {}".format(conf.VsiAlign))
                 child.sendline('{}'.format(conf.VsiAlign))
 
             # look for information from drudg on where the snp or prc files were placed (if they were created):
