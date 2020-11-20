@@ -18,12 +18,14 @@ if sys.version_info.major == 2:
     install_requires = [
         "pexpect >= 4.7.0",
         "pycurl >=7.43.0.2",
-        "configparser >= 4.0.0"
+        "configparser >= 4.0.0",
+        "configargparse>=1.2.3"
     ]
 else:
     install_requires = [
         "pexpect >= 4.7.0",
-        "pycurl >=7.43.0.2]"
+        "pycurl >=7.43.0.2",
+        "configargparse>=1.2.3"
     ]
 
 
@@ -78,7 +80,7 @@ if not skip_pre_and_post:
 
 setup(
     name='fesh2',
-    version='2.1rc2',
+    version='2.1rc4',
     url='https://github.com/nvi-inc/fs',
     license='GPL v3',
     author='Jim Lovell',

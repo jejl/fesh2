@@ -9,6 +9,7 @@ fesh2/SchedServer.py
 fesh2/__init__.py
 fesh2/__main__.py
 fesh2/fesh2.config
+fesh2/test_mcurl.py
 fesh2.egg-info/PKG-INFO
 fesh2.egg-info/SOURCES.txt
 fesh2.egg-info/dependency_links.txt

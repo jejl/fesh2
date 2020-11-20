@@ -8,7 +8,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
-    <option name="requirementsPath" value="$MODULE_DIR$/requirements.txt" />
+    <option name="requirementsPath" value="$MODULE_DIR$/requirements2.txt" />
     <option name="versionSpecifier" value="Greater or equal (&gt;=x.y.z)" />
     <option name="removeUnused" value="true" />
   </component>

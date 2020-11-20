@@ -5,4 +5,6 @@
 2.0rc5, 29 June 2020 -- Fifth pre-release
 2.0rc6, 29 June 2020 -- Fifth pre-release
 2.1rc1, 16 September 2020 -- Server mode, check status only option
+2.1rc2, 20 November 2020 -- Bug checks, testing
+2.1rc4, 20 November 2020 -- Minor updates
 
