@@ -878,7 +878,7 @@ class Args:
         items = OrderedDict()
         for keyval in args_skedf[1]:
             if "=" in keyval:
-                (k, v) = keyval.split("=")
+                (k, v) = keyval.split("=",1)
                 # print(k, v)
                 items[k[2:]] = v
         # The schedules directory must be defined. Stop here if it's not

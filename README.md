@@ -54,7 +54,7 @@ pip3 install fesh2
   `/usr2/fs/`, renaming the top directory `fesh2`
  2. Run the following:
     ```
-    cd /usr2/fs/fesh2/fesh2
+    cd /usr2/fs/fesh2
     python setup.py install
     ```
 Replace `python` with `python3` above for installation under Python version 3.
