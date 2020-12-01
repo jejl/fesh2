@@ -882,7 +882,7 @@ class Args:
                 # print(k, v)
                 items[k[2:]] = v
         # The schedules directory must be defined. Stop here if it's not
-        if not items["schedules"]:
+        if not "schedules" in items:
             msg = (
                 "\nFesh2 requires that $schedules is defined in skedf.ctl.\n"
                 "The default of '.' (i.e. the directory the software is\n"
@@ -891,6 +891,15 @@ class Args:
                 "is defined. Exiting.\n"
             )
             raise Exception(msg)
+        # Also check on other parameters that are used. Set defaults if they weren't in skedf.ctl
+        if not "misc.tpicd" in items:
+           items["misc.tpicd"] = 'NO 0'
+        if not "misc.vsi_align" in items:
+            items["misc.vsi_align"] = 'ASK'
+        if not "misc.cont_cal" in items:
+            items["misc.cont_cal"] = 'OFF'
+        if not "misc.cont_cal_polarity" in items:
+            items["misc.cont_cal_polarity"] = 'NONE'
 
         now = datetime.utcnow()
         self.parser = configargparse.ArgParser(

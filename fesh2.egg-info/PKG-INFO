@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: fesh2
-Version: 2.1rc4
+Version: 2.1rc5
 Summary: Geodetic VLBI schedule management and processing
 Home-page: https://github.com/nvi-inc/fs
 Author: Jim Lovell
@@ -62,7 +62,7 @@ Description: # Fesh2: Geodetic VLBI schedule file management and processing
           `/usr2/fs/`, renaming the top directory `fesh2`
          2. Run the following:
             ```
-            cd /usr2/fs/fesh2/fesh2
+            cd /usr2/fs/fesh2
             python setup.py install
             ```
         Replace `python` with `python3` above for installation under Python version 3.
