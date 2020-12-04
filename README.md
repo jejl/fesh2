@@ -45,6 +45,11 @@ or for Python version 3:
 ```
 pip3 install fesh2
 ```
+If you already have fesh2 installed and want to upgrade to the latest version
+, use the --upgrade option. e.g:
+```
+pip 3 install --upgrade fesh2
+```
 
 ### Option 2: Manual installation
 
@@ -367,7 +372,7 @@ Fesh2 can be run in the background as a `systemd` service. All output is
    Wants=network-online.target
    
    [Service]
-   ExecStart=sudo -H -u oper /usr/local/bin/fesh2 --quiet
+   ExecStart=/usr/bin/sudo -H -u oper /usr/local/bin/fesh2 --quiet
    
    [Install]
    WantedBy=multi-user.target
